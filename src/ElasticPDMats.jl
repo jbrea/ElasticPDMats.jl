@@ -130,6 +130,13 @@ struct ElasticPDMat{T, A} <: AbstractPDMat{T}
     mat::ElasticSymmetricMatrix{T}
     chol::ElasticCholesky{T, A}
 end
+"""
+    ElasticPDMat([m]; capacity = 10^3, stepsize = 10^3)
+
+Creates an elastic positive definite matrix with initial `capacity = 10^3` and 
+`stepsize = 10^3`. The optional argument `m` is a positive definite, symmetric 
+matrix. Use `append!` and `deleteat!` to change an ElasticPDMat.
+"""
 ElasticPDMat(; capacity = 10^3, stepsize = 10^3) = ElasticPDMat(ElasticSymmetricMatrix(capacity = capacity, stepsize = stepsize), ElasticCholesky(capacity = capacity, stepsize = stepsize))
 function ElasticPDMat(m; capacity = 10^3, stepsize = 10^3)
     ElasticPDMat(ElasticSymmetricMatrix(m, capacity = capacity, stepsize = stepsize),
