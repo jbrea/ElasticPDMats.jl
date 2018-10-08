@@ -4,7 +4,7 @@ import LinearAlgebra: mul!, ldiv!
 using LinearAlgebra
 using PDMats
 import PDMats: dim, Matrix, diag, pdadd!, *, \, inv, logdet, eigmax, eigmin, whiten!, unwhiten!, quad, quad!, invquad, invquad!, X_A_Xt, Xt_A_X, X_invA_Xt, Xt_invA_X
-export ElasticPDMat, ElasticSymmetricMatrix, ElasticCholesky
+export ElasticPDMat, ElasticSymmetricMatrix, ElasticCholesky, setcapacity!, setstepsize!
 
 mutable struct ElasticSymmetricMatrix{T} <: AbstractArray{T, 2}
     N::Int64
@@ -31,13 +31,13 @@ mul!(Y::AbstractArray{T, 2}, M::ElasticSymmetricMatrix{T}, V::AbstractArray{T, 2
 mul!(Y::AbstractArray{T, 2}, M1::ElasticSymmetricMatrix{T}, M2::ElasticSymmetricMatrix{T}) where {T} = mul!(Y, view(M1), view(M2))
 
 setnewdata!(obj::ElasticSymmetricMatrix, data) = obj.data = data
-grow!(obj::ElasticSymmetricMatrix) = grow!(obj, obj.data)
-function grow!(obj, data::AbstractArray{T, 2}) where {T}
-    tmp = zeros(T, obj.capacity + obj.stepsize, obj.capacity + obj.stepsize)
-    ind = CartesianIndices((1:obj.capacity, 1:obj.capacity))
+resize!(obj::ElasticSymmetricMatrix) = resize!(obj, obj.data)
+function resize!(obj, data::AbstractArray{T, 2}) where {T}
+    tmp = zeros(T, obj.capacity, obj.capacity)
+    ind = CartesianIndices((1:obj.N, 1:obj.N))
     copyto!(tmp, ind, data, ind)
     setnewdata!(obj, tmp)
-    obj.capacity += obj.stepsize
+    obj.capacity
 end
 
 append!(g::ElasticSymmetricMatrix{T}, data::Vector{T}) where {T} = append!(g, reshape(data, :, 1))
@@ -77,6 +77,13 @@ function ElasticCholesky(c::Cholesky{T, A}; capacity = 10^3, stepsize = 10^3) wh
 end
 ElasticCholesky(; capacity = 10^3, stepsize = 10^3) = ElasticCholesky(0, capacity, stepsize, Cholesky(zeros(capacity, capacity), 'U', LinearAlgebra.BlasInt(0)))
 
+
+function setcapacity!(x::Union{ElasticSymmetricMatrix, ElasticCholesky}, c::Int)
+    x.capacity = c
+    resize!(x)
+end
+setstepsize!(x::Union{ElasticSymmetricMatrix, ElasticCholesky}, c::Int) = x.stepsize = c
+
 view(c::ElasticCholesky, i, j) = Cholesky(view(c.c.factors, i, j), c.c.uplo, c.c.info)
 view(c::ElasticCholesky) = view(c, 1:c.N, 1:c.N)
 show(io::IO, m::MIME{Symbol("text/plain")}, c::ElasticCholesky) = show(io, m, view(c))
@@ -85,7 +92,11 @@ size(c::ElasticCholesky, i::Int) = c.N
 
 ldiv!(c::ElasticCholesky, x) = ldiv!(view(c), x)
 
-grow!(c::ElasticCholesky) = grow!(c, c.c.factors)
+function grow!(c::Union{ElasticCholesky, ElasticSymmetricMatrix})
+    c.capacity += c.stepsize
+    resize!(c)
+end
+resize!(c::ElasticCholesky) = resize!(c, c.c.factors)
 setnewdata!(c::ElasticCholesky, data) = c.c = Cholesky(data, 'U', LinearAlgebra.BlasInt(0))
 
 append!(c::ElasticCholesky{T, A}, data::Vector{T}) where {T, A} = append!(c, reshape(data, :, 1))
@@ -123,6 +134,15 @@ ElasticPDMat(; capacity = 10^3, stepsize = 10^3) = ElasticPDMat(ElasticSymmetric
 function ElasticPDMat(m; capacity = 10^3, stepsize = 10^3)
     ElasticPDMat(ElasticSymmetricMatrix(m, capacity = capacity, stepsize = stepsize),
                  ElasticCholesky(cholesky(m), capacity = capacity, stepsize = stepsize))
+end
+
+function setcapacity!(x::ElasticPDMat, c::Int)
+    setcapacity!(x.mat, c)
+    setcapacity!(x.chol, c)
+end
+function setstepsize!(x::ElasticPDMat, c::Int)
+    setstepsize!(x.mat, c)
+    setstepsize!(x.chol, c)
 end
 
 function append!(a::ElasticPDMat, data)

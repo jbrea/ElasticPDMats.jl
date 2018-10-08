@@ -37,3 +37,16 @@ end
     m2 = m[[1:2; 4:6; 9:10], [1:2; 4:6; 9:10]]
     @test cholesky(m2).U ≈ view(epdmat.chol).U
 end
+
+@testset "util" begin
+    a = rand(10, 10); m = a*a';
+    epdmat = ElasticPDMat(m)
+    @test size(epdmat.mat) == (10, 10)
+    setstepsize!(epdmat, 100)
+    @test epdmat.mat.stepsize == epdmat.chol.stepsize == 100
+    setcapacity!(epdmat, 20)
+    @test epdmat.mat.capacity == epdmat.chol.capacity == 20
+    @test size(epdmat.mat.data) == size(epdmat.chol.c.factors) == (20, 20)
+    @test view(epdmat.mat)[:] == m[:]
+    @test view(epdmat.chol).U == cholesky(m).U
+end

@@ -35,5 +35,6 @@ Whenever the current `capacity` is reached, e.g. due to several `append!`
 operations, the `capacity` increases to `capacity += stepsize`. *Caution:*
 increasing the `capacity` involves allocating new memory and copying old values,
 which is slow. For optimal performance, the `capacity` and the `stepsize` should
-be chosen wisely. 
+be chosen wisely. For an already initialized `e = ElasticPDMat()` they can be
+set with the helper functions `setcapacity!(e, 100)` and `setstepsize!(e, 100)`.
 
