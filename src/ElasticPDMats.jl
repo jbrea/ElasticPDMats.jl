@@ -10,7 +10,7 @@ mutable struct ElasticSymmetricMatrix{T} <: AbstractArray{T, 2}
     N::Int64
     capacity::Int64
     stepsize::Int64
-    data::AbstractArray{T, 2}
+    data::Array{T, 2}
 end
 function ElasticSymmetricMatrix(m::AbstractArray{T, 2}; N = size(m, 1), capacity = 10^3, stepsize = 10^3) where {T}
     !issymmetric(m) && error("Data is not symmetric.")
@@ -25,7 +25,8 @@ size(m::ElasticSymmetricMatrix) = (m.N, m.N)
 getindex(m::ElasticSymmetricMatrix, i::Integer, j::Integer) = m.data[i, j]
 function setindex!(m::ElasticSymmetricMatrix{T}, x::T, i::Integer, j::Integer) where T
     setindex!(m.data, x, i, j)
-    setindex!(m.data, x, j, i)
+    i != j && setindex!(m.data, x, j, i)
+    m
 end
 view(m::ElasticSymmetricMatrix, i, j) = view(m.data, i, j)
 view(m::ElasticSymmetricMatrix) = view(m, 1:m.N, 1:m.N)
