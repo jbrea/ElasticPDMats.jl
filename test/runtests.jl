@@ -40,7 +40,12 @@ end
 
 @testset "util" begin
     a = rand(10, 10); m = a*a';
-    epdmat = ElasticPDMat(m)
+    epdmat = ElasticPDMat(m, capacity = 100, stepsize = 50)
+    epdmat2 = ElasticPDMat(m, cholesky(m), capacity = 100, stepsize = 50)
+    epdmat3 = ElasticPDMat()
+    @test epdmat3.mat.capacity == epdmat3.chol.capacity == epdmat3.mat.stepsize == epdmat3.chol.stepsize == 10^3
+    @test epdmat.mat.data == epdmat2.mat.data
+    @test epdmat.chol.c.factors == epdmat2.chol.c.factors
     @test size(epdmat.mat) == (10, 10)
     setstepsize!(epdmat, 100)
     @test epdmat.mat.stepsize == epdmat.chol.stepsize == 100

@@ -23,6 +23,10 @@ ElasticSymmetricMatrix(; capacity = 10^3, stepsize = 10^3) = ElasticSymmetricMat
 
 size(m::ElasticSymmetricMatrix) = (m.N, m.N)
 getindex(m::ElasticSymmetricMatrix, i::Integer, j::Integer) = m.data[i, j]
+function setindex!(m::ElasticSymmetricMatrix{T}, x::T, i::Integer, j::Integer) where T
+    setindex!(m.data, x, i, j)
+    setindex!(m.data, x, j, i)
+end
 view(m::ElasticSymmetricMatrix, i, j) = view(m.data, i, j)
 view(m::ElasticSymmetricMatrix) = view(m, 1:m.N, 1:m.N)
 
@@ -131,16 +135,18 @@ struct ElasticPDMat{T, A} <: AbstractPDMat{T}
     chol::ElasticCholesky{T, A}
 end
 """
-    ElasticPDMat([m]; capacity = 10^3, stepsize = 10^3)
+    ElasticPDMat([m [, chol]]; capacity = 10^3, stepsize = 10^3)
 
 Creates an elastic positive definite matrix with initial `capacity = 10^3` and 
 `stepsize = 10^3`. The optional argument `m` is a positive definite, symmetric 
-matrix. Use `append!` and `deleteat!` to change an ElasticPDMat.
+matrix and `chol` its cholesky decomposition. Use `append!` and `deleteat!` to
+change an ElasticPDMat.
 """
-ElasticPDMat(; capacity = 10^3, stepsize = 10^3) = ElasticPDMat(ElasticSymmetricMatrix(capacity = capacity, stepsize = stepsize), ElasticCholesky(capacity = capacity, stepsize = stepsize))
-function ElasticPDMat(m; capacity = 10^3, stepsize = 10^3)
-    ElasticPDMat(ElasticSymmetricMatrix(m, capacity = capacity, stepsize = stepsize),
-                 ElasticCholesky(cholesky(m), capacity = capacity, stepsize = stepsize))
+ElasticPDMat(; kwargs...) = ElasticPDMat(ElasticSymmetricMatrix(; kwargs...), ElasticCholesky(kwargs...))
+ElasticPDMat(m; kwargs...) = ElasticPDMat(m, cholesky(m); kwargs...)
+function ElasticPDMat(m, chol; kwargs...)
+    ElasticPDMat(ElasticSymmetricMatrix(m; kwargs...),
+                 ElasticCholesky(chol; kwargs...))
 end
 
 function setcapacity!(x::ElasticPDMat, c::Int)
