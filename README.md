@@ -38,3 +38,8 @@ which is slow. For optimal performance, the `capacity` and the `stepsize` should
 be chosen wisely. For an already initialized `e = ElasticPDMat()` they can be
 set with the helper functions `setcapacity!(e, 100)` and `setstepsize!(e, 100)`.
 
+Additionally to `ElasticPDMat` this package exports view based elastic arrays of
+any dimension `AllElasticArray`, `ElasticSymmetricMatrix`, `ElasticCholesky` and
+the helper functions `setcapacity!`, `setstepsize!` and `setdimension!`.
+
+

@@ -4,7 +4,7 @@ import LinearAlgebra: mul!, ldiv!
 using LinearAlgebra, MacroTools
 using PDMats
 import PDMats: dim, Matrix, diag, pdadd!, *, \, inv, logdet, eigmax, eigmin, whiten!, unwhiten!, quad, quad!, invquad, invquad!, X_A_Xt, Xt_A_X, X_invA_Xt, Xt_invA_X
-export ElasticPDMat, AllElasticArray, ElasticSymmetricMatrix, ElasticCholesky, setcapacity!, setstepsize!
+export ElasticPDMat, AllElasticArray, ElasticSymmetricMatrix, ElasticCholesky, setcapacity!, setstepsize!, setdimension!
 
 mutable struct AllElasticArray{T, N} <: AbstractArray{T, N}
     dims::Tuple{Vararg{Int64, N}}
@@ -29,14 +29,14 @@ for i in 2:3
         setindex!(m::AllElasticArray{T, $i}, v::T, $(vars...)) where {T} = setindex!(m.data,v, $(vars...))
         view(m::AllElasticArray{T, $i}, $(vars...)) where {T} = view(m.data, $(vars...))
         view(m::AllElasticArray{T, $i}) where {T} = view(m, $([:(UnitRange(1, m.dims[$j])) for j in 1:i]...))
-        setdim!(m::AllElasticArray{T, $i}, v::Int, k::Int) where {T} = m.dims = tuple($([:(k == $j ? v : m.dims[$j]) for j in 1:i]...))
+        setdimension!(m::AllElasticArray{T, $i}, v::Int, k::Int) where {T} = m.dims = tuple($([:(k == $j ? v : m.dims[$j]) for j in 1:i]...))
     end
 end
 getindex(m::AllElasticArray{T, N}, i, j, k, l, I...) where {T, N} = getindex(m.data, i, j, k, l, I...)
 view(m::AllElasticArray{T, N}) where {T, N} = view(m, (UnitRange.(1, m.dims))...)
 setindex!(m::AllElasticArray{T, N}, I::Vararg{Int64, N}) where {T, N} = setindex!(m.data, I...)
-setdim!(m::AllElasticArray{T, N}, v::Int, k::Int) where {T, N} = m.dims = tuple([k == j ? v : m.dims[j] for j in 1:N]...)
-setdim!(m::AllElasticArray, v::Int, k::AbstractArray{Int, 1}) = for i in k setdim!(m, v, i) end
+setdimension!(m::AllElasticArray{T, N}, v::Int, k::Int) where {T, N} = m.dims = tuple([k == j ? v : m.dims[j] for j in 1:N]...)
+setdimension!(m::AllElasticArray, v::Int, k::AbstractArray{Int, 1}) = for i in k setdimension!(m, v, i) end
 function grow!(obj::AllElasticArray)
     obj.capacity = obj.capacity .+ obj.stepsize
     resize!(obj)
@@ -76,7 +76,7 @@ macro forward(ex, fs)
     nothing)
 end
 @forward ElasticSymmetricMatrix.m size, getindex, setindex!, view, mul!, grow!, resize!, setnewdata!
-setdim!(e::ElasticSymmetricMatrix, N::Int) = setdim!(e.m, N, 1:2)
+setdimension!(e::ElasticSymmetricMatrix, N::Int) = setdimension!(e.m, N, 1:2)
 function append!(g::ElasticSymmetricMatrix{T}, data::AbstractArray{T, 2}) where {T}
     n, m = size(data)
     oldm = size(g, 1)
@@ -87,7 +87,7 @@ function append!(g::ElasticSymmetricMatrix{T}, data::AbstractArray{T, 2}) where 
             gd[i, j + oldm] = gd[j + oldm, i] = data[i, j]
         end
     end
-    setdim!(g, oldm + m) 
+    setdimension!(g, oldm + m) 
     g
 end
 function deleteat!(g::ElasticSymmetricMatrix, i::Int)
@@ -97,7 +97,7 @@ function deleteat!(g::ElasticSymmetricMatrix, i::Int)
             gd, CartesianIndices((1:N, i+1:N)))
     copyto!(gd, CartesianIndices((i:N-1, 1:N)), 
             gd, CartesianIndices((i+1:N, 1:N)))
-    setdim!(g, N - 1)
+    setdimension!(g, N - 1)
     g
 end
 function setcapacity!(x::ElasticSymmetricMatrix, c::Int)
