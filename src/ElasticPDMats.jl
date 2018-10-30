@@ -7,9 +7,9 @@ import PDMats: dim, Matrix, diag, pdadd!, *, \, inv, logdet, eigmax, eigmin, whi
 export ElasticPDMat, AllElasticArray, ElasticSymmetricMatrix, ElasticCholesky, setcapacity!, setstepsize!, setdimension!
 
 mutable struct AllElasticArray{T, N} <: AbstractArray{T, N}
-    dims::Tuple{Vararg{Int64, N}}
-    capacity::Tuple{Vararg{Int64, N}}
-    stepsize::Tuple{Vararg{Int64, N}}
+    dims::Tuple{Vararg{Int, N}}
+    capacity::Tuple{Vararg{Int, N}}
+    stepsize::Tuple{Vararg{Int, N}}
     data::Array{T, N}
 end
 function AllElasticArray(m::AbstractArray{T, N}; dims = size(m), 
@@ -34,7 +34,7 @@ for i in 2:3
 end
 getindex(m::AllElasticArray{T, N}, i, j, k, l, I...) where {T, N} = getindex(m.data, i, j, k, l, I...)
 view(m::AllElasticArray{T, N}) where {T, N} = view(m, (UnitRange.(1, m.dims))...)
-setindex!(m::AllElasticArray{T, N}, I::Vararg{Int64, N}) where {T, N} = setindex!(m.data, I...)
+setindex!(m::AllElasticArray{T, N}, I::Vararg{Int, N}) where {T, N} = setindex!(m.data, I...)
 setdimension!(m::AllElasticArray{T, N}, v::Int, k::Int) where {T, N} = m.dims = tuple([k == j ? v : m.dims[j] for j in 1:N]...)
 setdimension!(m::AllElasticArray, v::Int, k::AbstractArray{Int, 1}) = for i in k setdimension!(m, v, i) end
 function grow!(obj::AllElasticArray)
@@ -107,9 +107,9 @@ end
 setstepsize!(x::ElasticSymmetricMatrix, c::Int) = x.m.stepsize = (c, c)
 
 mutable struct ElasticCholesky{T, A} <: Factorization{T}
-    N::Int64
-    capacity::Int64
-    stepsize::Int64
+    N::Int
+    capacity::Int
+    stepsize::Int
     c::Cholesky{T, A}
 end
 function ElasticCholesky(c::Cholesky{T, A}; capacity = 10^3, stepsize = 10^3) where {T, A}
