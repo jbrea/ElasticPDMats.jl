@@ -9,7 +9,7 @@ preallocated memory.
 ![Lifecycle](https://img.shields.io/badge/lifecycle-retired-orange.svg)
 ![Lifecycle](https://img.shields.io/badge/lifecycle-archived-red.svg)
 ![Lifecycle](https://img.shields.io/badge/lifecycle-dormant-blue.svg) -->
-[![Build Status](https://travis-ci.org/jbrea/ElasticPDMats.jl.svg?branch=master)](https://travis-ci.org/jbrea/ElasticPDMats.jl)
+[![Build Status](https://travis-ci.com/jbrea/ElasticPDMats.jl.svg?branch=master)](https://travis-ci.com/jbrea/ElasticPDMats.jl)
 [![codecov.io](http://codecov.io/github/jbrea/ElasticPDMats.jl/coverage.svg?branch=master)](http://codecov.io/github/jbrea/ElasticPDMats.jl?branch=master)
 
 ## Usage

@@ -1,5 +1,5 @@
-using ElasticPDMats, PDMats, LinearAlgebra
-using Test
+using Test, ElasticPDMats, PDMats, LinearAlgebra
+include(joinpath(dirname(pathof(PDMats)), "..", "test", "testutils.jl"))
 
 @testset "PDMat Tests" begin
     a = rand(10, 10); m = a*a';
@@ -19,7 +19,7 @@ end
 
     epdmat = ElasticPDMat(m[1:6, 1:6], capacity = 6, stepsize = 6)
     append!(epdmat, m[:, 7:10])
-    @test epdmat.mat.m.capacity[1] == epdmat.chol.capacity == 
+    @test epdmat.mat.m.capacity[1] == epdmat.chol.capacity ==
         size(epdmat.mat.m.data, 1) == size(epdmat.chol.c.factors, 1) == 12
     @test cholesky(m).U ≈ view(epdmat.chol).U
 end

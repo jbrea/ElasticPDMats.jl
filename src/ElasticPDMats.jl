@@ -194,6 +194,7 @@ function ElasticPDMat(m, chol; kwargs...)
     ElasticPDMat(ElasticSymmetricMatrix(m; kwargs...),
                  ElasticCholesky(chol; kwargs...))
 end
+@forward ElasticPDMat.mat getindex
 
 function setcapacity!(x::ElasticPDMat, c::Int)
     setcapacity!(x.mat, c)
