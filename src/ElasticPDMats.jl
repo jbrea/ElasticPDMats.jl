@@ -12,12 +12,12 @@ mutable struct AllElasticArray{T, N} <: AbstractArray{T, N}
     stepsize::Tuple{Vararg{Int, N}}
     data::Array{T, N}
 end
-function AllElasticArray(m::AbstractArray{T, N}; dims = size(m), 
-                         capacity = fill(10^2, N), 
+function AllElasticArray(m::AbstractArray{T, N}; dims = size(m),
+                         capacity = fill(10^2, N),
                          stepsize = fill(10^2, N)) where {T, N}
     AllElasticArray(dims, Tuple(max.(dims, capacity)), Tuple(max.(dims, stepsize)), m)
 end
-AllElasticArray(N; capacity = tuple(fill(10^2, N)...), stepsize = tuple(fill(10^2, N)...)) = 
+AllElasticArray(N; capacity = tuple(fill(10^2, N)...), stepsize = tuple(fill(10^2, N)...)) =
 AllElasticArray(zeros(capacity...), dims = tuple(fill(0, N)...), capacity = capacity,
                     stepsize = stepsize)
 
@@ -87,15 +87,15 @@ function append!(g::ElasticSymmetricMatrix{T}, data::AbstractArray{T, 2}) where 
             gd[i, j + oldm] = gd[j + oldm, i] = data[i, j]
         end
     end
-    setdimension!(g, oldm + m) 
+    setdimension!(g, oldm + m)
     g
 end
 function deleteat!(g::ElasticSymmetricMatrix, i::Int)
     N = size(g, 1)
     gd = g.m.data
-    copyto!(gd, CartesianIndices((1:N, i:N - 1)), 
+    copyto!(gd, CartesianIndices((1:N, i:N - 1)),
             gd, CartesianIndices((1:N, i+1:N)))
-    copyto!(gd, CartesianIndices((i:N-1, 1:N)), 
+    copyto!(gd, CartesianIndices((i:N-1, 1:N)),
             gd, CartesianIndices((i+1:N, 1:N)))
     setdimension!(g, N - 1)
     g
@@ -165,7 +165,7 @@ function append!(c::ElasticCholesky{T,A}, data::A) where {T, A}
 end
 # TODO: Check if this can be optimized.
 function deleteat!(c::ElasticCholesky, i::Int)
-    R = view(c.c.factors, i, i+1:c.N) * view(c.c.factors, i, i+1:c.N)' 
+    R = view(c.c.factors, i, i+1:c.N) * view(c.c.factors, i, i+1:c.N)'
     R += view(c, i+1:c.N, i+1:c.N).U' * view(c, i+1:c.N, i+1:c.N).U
     cholesky!(Symmetric(R))
     copyto!(c.c.factors, CartesianIndices((1:i-1, i:c.N-1)),
@@ -183,8 +183,8 @@ end
 """
     ElasticPDMat([m [, chol]]; capacity = 10^3, stepsize = 10^3)
 
-Creates an elastic positive definite matrix with initial `capacity = 10^3` and 
-`stepsize = 10^3`. The optional argument `m` is a positive definite, symmetric 
+Creates an elastic positive definite matrix with initial `capacity = 10^3` and
+`stepsize = 10^3`. The optional argument `m` is a positive definite, symmetric
 matrix and `chol` its cholesky decomposition. Use `append!` and `deleteat!` to
 change an ElasticPDMat.
 """
@@ -239,54 +239,54 @@ function pdadd!(r::Matrix, a::Matrix, gb::ElasticPDMat, c::Real)
     return r
 end
 
-*(a::ElasticPDMat, c::Real) = ElasticPDMat(c * Matrix(a), capacity = a.chol.capacity, stepsize = a.chol.stepsize) 
-*(a::ElasticPDMat, x::AbstractArray) = a.mat * x 
-\(a::ElasticPDMat, x::AbstractArray) = a.chol \ x
+*(a::ElasticPDMat, c::Real) = ElasticPDMat(c * Matrix(a), capacity = a.chol.capacity, stepsize = a.chol.stepsize)
+*(a::ElasticPDMat, x::DenseVecOrMat) = a.mat * x
+\(a::ElasticPDMat, x::DenseVecOrMat) = a.chol \ x
 
-inv(a::ElasticPDMat) = ElasticPDMat(inv(a.chol), capacity = a.chol.capacity, stepsize = a.chol.stepsize) 
-logdet(a::ElasticPDMat) = logdet(view(a.chol)) 
+inv(a::ElasticPDMat) = ElasticPDMat(inv(a.chol), capacity = a.chol.capacity, stepsize = a.chol.stepsize)
+logdet(a::ElasticPDMat) = logdet(view(a.chol))
 eigmax(a::ElasticPDMat) = eigmax(view(a.mat))
 eigmin(a::ElasticPDMat) = eigmin(view(a.mat))
 
 
-function whiten!(r::DenseVecOrMat, a::ElasticPDMat, x::DenseVecOrMat)  
+function whiten!(r::DenseVecOrMat, a::ElasticPDMat, x::DenseVecOrMat)
     cf = view(a.chol).UL
     v = PDMats._rcopy!(r, x)
     istriu(cf) ? ldiv!(transpose(cf), v) : ldiv!(cf, v)
 end
 
-function unwhiten!(r::DenseVecOrMat, a::ElasticPDMat, x::DenseVecOrMat)  
+function unwhiten!(r::DenseVecOrMat, a::ElasticPDMat, x::DenseVecOrMat)
     cf = view(a.chol).UL
     v = PDMats._rcopy!(r, x)
     istriu(cf) ? lmul!(transpose(cf), v) : lmul!(cf, v)
 end
 
 quad(a::ElasticPDMat{T, A}, x::AbstractArray{T, 1}) where {T, A} = dot(x, a * x)
-quad!(r::AbstractArray, a::ElasticPDMat, x::DenseMatrix) = PDMats.colwise_dot!(r, x, a.mat * x) 
-invquad(a::ElasticPDMat{T, A}, x::AbstractArray{T, 1}) where {T, A} = dot(x, a \ x) 
+quad!(r::AbstractArray, a::ElasticPDMat, x::DenseMatrix) = PDMats.colwise_dot!(r, x, a.mat * x)
+invquad(a::ElasticPDMat{T, A}, x::AbstractArray{T, 1}) where {T, A} = dot(x, a \ x)
 invquad!(r::AbstractArray, a::ElasticPDMat, x::DenseMatrix) = PDMats.colwise_dot!(r, x, a.mat \ x)
-                                                 
 
-function X_A_Xt(a::ElasticPDMat, x::DenseMatrix)        
+
+function X_A_Xt(a::ElasticPDMat, x::DenseMatrix)
     z = copy(x)
     cf = view(a.chol).UL
     rmul!(z, istriu(cf) ? transpose(cf) : cf)
     z * transpose(z)
 end
 
-function Xt_A_X(a::ElasticPDMat, x::DenseMatrix)        
+function Xt_A_X(a::ElasticPDMat, x::DenseMatrix)
     cf = view(a.chol).UL
     z = lmul!(istriu(cf) ? cf : transpose(cf), copy(x))
     transpose(z) * z
 end
 
-function X_invA_Xt(a::ElasticPDMat, x::DenseMatrix)     
+function X_invA_Xt(a::ElasticPDMat, x::DenseMatrix)
     cf = view(a.chol).UL
     z = rdiv!(copy(x), istriu(cf) ? cf : transpose(cf))
     z * transpose(z)
 end
 
-function Xt_invA_X(a::ElasticPDMat, x::DenseMatrix)     
+function Xt_invA_X(a::ElasticPDMat, x::DenseMatrix)
     cf = view(a.chol).UL
     z = ldiv!(istriu(cf) ? transpose(cf) : cf, copy(x))
     transpose(z) * z
