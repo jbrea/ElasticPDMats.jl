@@ -1,4 +1,5 @@
 module ElasticPDMats
+using PDMats: chol_lower
 import Base: size, getindex, setindex!, append!, show, view, deleteat!
 import LinearAlgebra: mul!, ldiv!
 using LinearAlgebra, MacroTools
@@ -50,7 +51,7 @@ function resize!(obj::AllElasticArray, data::AbstractArray{T, N}) where {T, N}
     obj.capacity
 end
 
-mul!(Y::AbstractArray{T, 1}, M::AllElasticArray{T, 2}, V::AbstractArray{T, 1}) where {T} = mul!(Y, view(M), V)
+mul!(Y::AbstractVector, M::AllElasticArray{T, 2}, V::AbstractVector) where {T} = mul!(Y, view(M), V)
 mul!(Y::AbstractArray{T, 2}, M::AllElasticArray{T, 2}, V::AbstractArray{T, 2}) where {T} = mul!(Y, view(M), V)
 mul!(Y::AbstractArray{T, 2}, M1::AllElasticArray{T, 2}, M2::AllElasticArray{T, 2}) where {T} = mul!(Y, view(M1), view(M2))
 
@@ -120,6 +121,8 @@ function ElasticCholesky(c::Cholesky{T, A}; capacity = 10^3, stepsize = 10^3) wh
     ElasticCholesky(N, capacity, stepsize, Cholesky(data, 'U', LinearAlgebra.BlasInt(0)))
 end
 ElasticCholesky(; capacity = 10^3, stepsize = 10^3) = ElasticCholesky(0, capacity, stepsize, Cholesky(zeros(capacity, capacity), 'U', LinearAlgebra.BlasInt(0)))
+PDMats.chol_upper(c::ElasticCholesky) = view(PDMats.chol_upper(c.c), 1:c.N, 1:c.N)
+PDMats.chol_lower(c::ElasticCholesky) = view(PDMats.chol_lower(c.c), 1:c.N, 1:c.N)
 
 
 function setcapacity!(x::ElasticCholesky, c::Int)
@@ -195,6 +198,7 @@ function ElasticPDMat(m, chol; kwargs...)
                  ElasticCholesky(chol; kwargs...))
 end
 @forward ElasticPDMat.mat getindex
+LinearAlgebra.cholesky(a::ElasticPDMat) = a.chol
 
 function setcapacity!(x::ElasticPDMat, c::Int)
     setcapacity!(x.mat, c)
@@ -221,6 +225,7 @@ function deleteat!(g::Union{ElasticSymmetricMatrix, ElasticCholesky, ElasticPDMa
 end
 
 dim(a::ElasticPDMat) = size(a.mat, 1)
+size(a::ElasticPDMat, args...) = size(a.mat, args...)
 Base.Matrix(a::ElasticPDMat) = Matrix(view(a.mat))
 LinearAlgebra.diag(a::ElasticPDMat) = diag(view(a.mat))
 function pdadd!(r::Matrix, a::Matrix, gb::ElasticPDMat, c::Real)
@@ -250,6 +255,12 @@ eigmax(a::ElasticPDMat) = eigmax(view(a.mat))
 eigmin(a::ElasticPDMat) = eigmin(view(a.mat))
 
 
+function PDMats.whiten(a::ElasticPDMat, x::AbstractVecOrMat)
+    PDMats.chol_lower(cholesky(a)) \ x
+end
+function PDMats.unwhiten(a::ElasticPDMat, x::AbstractVecOrMat)
+    PDMats.chol_lower(cholesky(a)) * x
+end
 function whiten!(r::DenseVecOrMat, a::ElasticPDMat, x::DenseVecOrMat)
     cf = view(a.chol).UL
     v = PDMats._rcopy!(r, x)
@@ -262,9 +273,23 @@ function unwhiten!(r::DenseVecOrMat, a::ElasticPDMat, x::DenseVecOrMat)
     istriu(cf) ? lmul!(transpose(cf), v) : lmul!(cf, v)
 end
 
-quad(a::ElasticPDMat{T, A}, x::AbstractArray{T, 1}) where {T, A} = dot(x, a * x)
+function quad(a::ElasticPDMat, x::AbstractVecOrMat)
+    aU_x = PDMats.chol_upper(cholesky(a)) * x
+    if x isa AbstractVector
+        return sum(abs2, aU_x)
+    else
+        return vec(sum(abs2, aU_x; dims = 1))
+    end
+end
 quad!(r::AbstractArray, a::ElasticPDMat, x::DenseMatrix) = PDMats.colwise_dot!(r, x, a.mat * x)
-invquad(a::ElasticPDMat{T, A}, x::AbstractArray{T, 1}) where {T, A} = dot(x, a \ x)
+function invquad(a::ElasticPDMat, x::AbstractVecOrMat)
+    inv_aL_x = PDMats.chol_lower(cholesky(a)) \ x
+    if x isa AbstractVector
+        return sum(abs2, inv_aL_x)
+    else
+        return vec(sum(abs2, inv_aL_x; dims = 1))
+    end
+end
 invquad!(r::AbstractArray, a::ElasticPDMat, x::DenseMatrix) = PDMats.colwise_dot!(r, x, a.mat \ x)
 
 
