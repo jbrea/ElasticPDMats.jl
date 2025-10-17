@@ -263,13 +263,15 @@ function PDMats.unwhiten(a::ElasticPDMat, x::AbstractVecOrMat)
 end
 function whiten!(r::DenseVecOrMat, a::ElasticPDMat, x::DenseVecOrMat)
     cf = view(a.chol).UL
-    v = PDMats._rcopy!(r, x)
+    # v = PDMats._rcopy!(r, x)
+    v = copyto!(r, x)
     istriu(cf) ? ldiv!(transpose(cf), v) : ldiv!(cf, v)
 end
 
 function unwhiten!(r::DenseVecOrMat, a::ElasticPDMat, x::DenseVecOrMat)
     cf = view(a.chol).UL
-    v = PDMats._rcopy!(r, x)
+    # v = PDMats._rcopy!(r, x)
+    v = copyto!(r, x)
     istriu(cf) ? lmul!(transpose(cf), v) : lmul!(cf, v)
 end
 
